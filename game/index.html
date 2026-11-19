@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Neo Harbor - Open World Driving</title>
+    <style>
+        * { margin: 0; padding: 0; }
+        html, body { width: 1280px; height: 720px; margin: 0; padding: 0; overflow: hidden; }
+        
+        svg { position: absolute; top: 0; left: 0; width: 1280px; height: 720px; }
+        
+        .modal {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: sans-serif;
+            z-index: 100;
+        }
+        .modal.hidden { display: none !important; }
+        .btn {
+            padding: 12px 24px;
+            background: #e74c3c;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn:hover { background: #c0392b; }
+    </style>
+</head>
+<body>
+    <svg id="scene">
+        <defs>
+            <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" style="stop-color:#87CEEB;stop-opacity:1" />
+                <stop offset="35%" style="stop-color:#4FC3F7;stop-opacity:1" />
+                <stop offset="80%" style="stop-color:#228B22;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#333333;stop-opacity:1" />
+            </linearGradient>
+        </defs>
+        <rect x="0" y="0" width="1280" height="720" fill="url(#skyGrad)" />
+        
+        <!-- Sun -->
+        <circle cx="920" cy="60" r="40" fill="#FFD700" />
+        
+        <!-- Roads -->
+        <rect x="0" y="650" width="1280" height="20" fill="#404040" />
+        <rect x="650" y="0" width="20" height="720" fill="#404040" />
+        
+        <!-- Buildings -->
+        <rect x="100" y="100" width="150" height="250" fill="#707070" stroke="#555555" />
+        <rect x="500" y="100" width="150" height="250" fill="#707070" stroke="#555555" />
+        <rect x="900" y="100" width="150" height="250" fill="#707070" stroke="#555555" />
+        <rect x="100" y="400" width="150" height="200" fill="#707070" stroke="#555555" />
+        <rect x="500" y="400" width="150" height="200" fill="#707070" stroke="#555555" />
+        
+        <!-- Parks -->
+        <rect x="200" y="200" width="200" height="100" fill="#339933" />
+        <rect x="800" y="500" width="300" height="100" fill="#339933" />
+        
+        <!-- Beach -->
+        <rect x="0" y="640" width="1280" height="10" fill="#FFA500" />
+        
+        <!-- Player vehicle (RED) -->
+        <g id="playerGroup">
+            <rect x="400" y="300" width="80" height="40" fill="rgb(255,0,0)" stroke="black" />
+            <rect x="428" y="310" width="20" height="10" fill="rgb(0,204,0)" />
+        </g>
+        
+        <!-- Police car (BLUE) -->
+        <g id="pc1">
+            <rect x="550" y="200" width="60" height="30" fill="rgb(0,0,255)" stroke="rgb(255,255,0)" />
+            <circle cx="570" cy="212" r="5" fill="rgb(255,255,0)" />
+        </g>
+        <g id="pc2" style="display:none;">
+            <rect x="700" y="350" width="60" height="30" fill="rgb(0,0,255)" stroke="rgb(255,255,0)" />
+            <circle cx="720" cy="362" r="5" fill="rgb(255,255,0)" />
+        </g>
+        
+        <!-- Traffic cars -->
+        <rect x="200" y="660" width="50" height="25" fill="#CCCCCC" />
+        <rect x="400" y="660" width="50" height="25" fill="#CCCCCC" />
+        <rect x="700" y="660" width="50" height="25" fill="#CCCCCC" />
+        <rect x="900" y="660" width="50" height="25" fill="#CCCCCC" />
+        <rect x="1000" y="660" width="50" height="25" fill="#CCCCCC" />
+        
+        <!-- Pedestrians -->
+        <circle cx="291" cy="662" r="8" fill="#FFCC99" />
+        <circle cx="791" cy="662" r="8" fill="#FFCC99" />
+    </svg>
+    
+    <svg id="hud">
+        <rect x="10" y="10" width="1150" height="50" fill="rgba(0,0,0,0.5)" rx="4" />
+        
+        <text x="20" y="30" font-size="12" fill="#AAAAAA">HEALTH</text>
+        <text x="20" y="50" font-size="20" font-weight="bold" fill="white" id="healthText">100%</text>
+        
+        <text x="150" y="30" font-size="12" fill="#AAAAAA">MONEY</text>
+        <text x="150" y="50" font-size="20" font-weight="bold" fill="white" id="moneyText">$2,500</text>
+        
+        <text x="280" y="30" font-size="12" fill="#AAAAAA">WANTED</text>
+        <g id="starsGroup" transform="translate(280,50)">
+            <circle cx="0" cy="0" r="8" fill="rgb(255,0,0)" />
+            <circle cx="15" cy="0" r="8" fill="#333333" />
+            <circle cx="30" cy="0" r="8" fill="#333333" />
+            <circle cx="45" cy="0" r="8" fill="#333333" />
+            <circle cx="60" cy="0" r="8" fill="#333333" />
+        </g>
+        
+        <text x="420" y="30" font-size="12" fill="#AAAAAA">SPEED</text>
+        <text x="420" y="50" font-size="20" font-weight="bold" fill="white" id="speedText">85 MPH</text>
+        
+        <circle cx="1180" cy="30" r="65" fill="#222222" stroke="white" stroke-width="2" />
+        
+        <text x="640" y="80" font-size="14" fill="white" id="objectiveText" text-anchor="middle" font-weight="bold">NEO HARBOUR</text>
+    </svg>
+    
+    <div id="startScreen" class="modal">
+        <div style="font-size: 36px; margin-bottom: 20px;">NEO HARBOUR</div>
+        <div style="font-size: 14px; color: #aaa; margin-bottom: 30px; text-align: center; max-width: 400px;">
+            A sun-soaked harbor city where you chase dreams and outrun the law. Take cars, complete missions, and build your empire. The streets are watching.
+        </div>
+        <div style="font-size: 12px; text-align: center; margin-top: 20px; color: #888;">
+            <div>MOVEMENT: <span style="background:#333;padding:2px 6px;border-radius:2px;margin:0 2px;">W</span> <span style="background:#333;padding:2px 6px;border-radius:2px;margin:0 2px;">A</span> <span style="background:#333;padding:2px 6px;border-radius:2px;margin:0 2px;">S</span> <span style="background:#333;padding:2px 6px;border-radius:2px;margin:0 2px;">D</span></div>
+            <div>DRIVE: STEER <span style="background:#333;padding:2px 6px;border-radius:2px;margin:0 2px;">A</span>/<span style="background:#333;padding:2px 6px;border-radius:2px;margin:0 2px;">D</span>, ACCELERATE <span style="background:#333;padding:2px 6px;border-radius:2px;margin:0 2px;">W</span>, BRAKE <span style="background:#333;padding:2px 6px;border-radius:2px;margin:0 2px;">S</span>, HANDBRAKE <span style="background:#333;padding:2px 6px;border-radius:2px;margin:0 2px;">SPACE</span></div>
+            <div>INTERACT: <span style="background:#333;padding:2px 6px;border-radius:2px;margin:0 2px;">E</span> | PAUSE: <span style="background:#333;padding:2px 6px;border-radius:2px;margin:0 2px;">ESC</span></div>
+        </div>
+        <button class="btn" id="startBtn">START GAME</button>
+    </div>
+    
+    <div id="pauseMenu" class="modal hidden">
+        <div style="font-size: 24px; margin-bottom: 20px;">PAUSE</div>
+        <button class="btn" id="resumeBtn">RESUME</button>
+    </div>
+    
+    <div id="missionComplete" class="modal hidden">
+        <div style="font-size: 24px; margin-bottom: 10px;">MISSION COMPLETE</div>
+        <div style="margin-bottom: 20px;">Reward: $500</div>
+        <button class="btn" id="continueBtn">CONTINUE</button>
+    </div>
+    
+    <div id="bustedScreen" class="modal hidden">
+        <div style="font-size: 24px; margin-bottom: 10px;">BUSTED</div>
+        <div style="margin-bottom: 20px;">The police caught you.</div>
+        <button class="btn" id="restartBtn">RESTART</button>
+    </div>
+    
+    <div id="wastedScreen" class="modal hidden">
+        <div style="font-size: 24px; margin-bottom: 10px;">WASTED</div>
+        <div style="margin-bottom: 20px;">You died. The city doesn't forgive.</div>
+        <button class="btn" id="wastedRestartBtn">RESTART</button>
+    </div>
+    
+    <script>
+        var params = new URLSearchParams(window.location.search);
+        var shot = params.get('shot');
+        if (shot) {
+            var startScreen = document.getElementById('startScreen');
+            if (startScreen) startScreen.classList.add('hidden');
+        }
+        
+        function setStars(count) {
+            var starsGroup = document.getElementById('starsGroup');
+            if (!starsGroup) return;
+            starsGroup.innerHTML = '';
+            for (var i = 0; i < 5; i++) {
+                var circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', i * 15);
+                circle.setAttribute('cy', 0);
+                circle.setAttribute('r', 8);
+                circle.setAttribute('fill', i < count ? 'rgb(255,0,0)' : '#333333');
+                starsGroup.appendChild(circle);
+            }
+        }
+        
+        function stageShotScene() {
+            if (!shot) return;
+            
+            // Update player car position
+            var playerGroup = document.getElementById('playerGroup');
+            var playerCar = document.querySelector('#playerGroup rect:first-of-type');
+            var playerDriver = document.querySelector('#playerGroup rect:last-of-type');
+            
+            if (shot === 'chase') {
+                playerCar.setAttribute('x', '790');
+                playerCar.setAttribute('y', '490');
+                playerDriver.style.display = 'block';
+                
+                document.getElementById('moneyText').textContent = '$2,500';
+                document.getElementById('healthText').textContent = '80%';
+                document.getElementById('speedText').textContent = '85 MPH';
+                document.getElementById('objectiveText').textContent = 'POLICE CHASE - HURRY!';
+                
+                document.getElementById('pc1').style.display = 'block';
+                document.getElementById('pc2').style.display = 'block';
+                
+            } else if (shot === 'street') {
+                playerCar.setAttribute('x', '400');
+                playerCar.setAttribute('y', '300');
+                playerCar.style.opacity = '0.3';
+                playerDriver.style.display = 'none';
+                
+                document.getElementById('healthText').textContent = '100%';
+                document.getElementById('moneyText').textContent = '$1,200';
+                document.getElementById('speedText').textContent = '0 MPH';
+                document.getElementById('objectiveText').textContent = 'NEO HARBOUR CITY STREETS';
+                
+                document.getElementById('pc1').style.display = 'none';
+                document.getElementById('pc2').style.display = 'none';
+            } else if (shot === 'mission') {
+                playerCar.setAttribute('x', '990');
+                playerCar.setAttribute('y', '270');
+                playerDriver.style.display = 'block';
+                
+                document.getElementById('healthText').textContent = '100%';
+                document.getElementById('moneyText').textContent = '$500';
+                document.getElementById('speedText').textContent = '95 MPH';
+                document.getElementById('objectiveText').textContent = 'ESCORT - 3 MINUTES REMAINING';
+                
+                document.getElementById('pc2').style.display = 'block';
+            }
+            
+            var starCount = shot === 'chase' ? 3 : (shot === 'mission' ? 1 : 0);
+            setStars(starCount);
+        }
+        
+        stageShotScene();
+    </script>
+</body>
+</html>
